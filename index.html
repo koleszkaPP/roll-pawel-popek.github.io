@@ -59,11 +59,31 @@ button {
   margin: 10px auto;
   background-color: #222;
 }
+
+/* Statystyki w prawym górnym rogu */
+#stats {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background-color: #222;
+  border: 1px solid #555;
+  padding: 10px;
+  border-radius: 10px;
+  text-align: left;
+  width: 200px;
+  font-size: 0.9em;
+}
 </style>
 </head>
 <body>
 
 <h1>Paweł RNG - Mega Slot</h1>
+
+<div id="stats">
+  <div>Monety: <span id="statsCoins">0</span></div>
+  <div>Przedmioty: <span id="statsItems">0</span></div>
+  <div>Łączne losowania: <span id="statsRolls">0</span></div>
+</div>
 
 <button id="rollButton">Roll</button>
 <div id="cooldownDisplay">Cooldown: 0s</div>
@@ -98,7 +118,7 @@ const images = [
   {src: 'photo6.png', text: 'świąteczny paweł', chance: 1/64, rarity: 'Legendary', reward: 80},
   {src: 'photo7.png', text: 'paweł dostaje backshoty', chance: 1/128, rarity: 'Ultra Legendary', reward: 160},
   {src: 'photo8.png', text: 'paweł komunista', chance: 1/256, rarity: 'Ultra Legendary', reward: 320},
-  {src: 'photo9.png', text: 'Śledziu', chance: 1/16, rarity: 'Secret', reward: 500, requiresItem: 'Tajemniczy Przedmiot'}
+  {src: 'photo9.png', text: 'Śledziu', chance: 1/1000, rarity: 'Secret', reward: 500, requiresItem: 'Tajemniczy Przedmiot'}
 ];
 
 const musicFiles = ['music.mp3','music2.mp3','music3.mp3','music4.mp3','music5.mp3'];
@@ -111,6 +131,7 @@ let inventory = JSON.parse(localStorage.getItem('inventory'))||[];
 let historyData = JSON.parse(localStorage.getItem('historyData'))||{};
 let cooldown = parseInt(localStorage.getItem('cooldown'))||2000; // ms
 let lastRoll = 0;
+let totalRolls = parseInt(localStorage.getItem('totalRolls'))||0;
 
 // ===== FUNKCJE =====
 function updateUI(){
@@ -125,6 +146,12 @@ function updateUI(){
   localStorage.setItem('inventory',JSON.stringify(inventory));
   localStorage.setItem('historyData',JSON.stringify(historyData));
   localStorage.setItem('cooldown',cooldown);
+  localStorage.setItem('totalRolls', totalRolls);
+
+  // Aktualizacja statystyk
+  document.getElementById('statsCoins').textContent = coins;
+  document.getElementById('statsItems').textContent = inventory.length;
+  document.getElementById('statsRolls').textContent = totalRolls;
 }
 
 function showCooldown(){
@@ -138,12 +165,12 @@ function rollRNG(){
   const now=Date.now();
   if(cooldown && now-lastRoll<cooldown){ alert(`Odczekaj jeszcze ${(cooldown-(now-lastRoll))/1000} sekund!`); return;}
   lastRoll=now;
+  totalRolls++;
 
   const entries=[];
   images.forEach(img=>{
-    // sprawdzamy wymagany przedmiot
     if(img.requiresItem && !inventory.includes(img.requiresItem)) return;
-    let count = Math.floor(img.chance*256);
+    let count = Math.floor(img.chance*1000);
     if(inventory.length>0) count=Math.floor(count*1.05);
     for(let i=0;i<count;i++) entries.push(img);
   });
@@ -163,7 +190,6 @@ function rollRNG(){
     textElem.textContent=temp.text;
     chanceElem.textContent=`Szansa: 1/${Math.round(1/temp.chance)}`;
     rarityElem.textContent=`Rzadkość: ${temp.rarity}`;
-
     if(temp.rarity!=='Common' && temp.rarity!=='Uncommon'){
       imgElem.style.transform=`scale(${1+Math.random()*0.2}) rotate(${(Math.random()-0.5)*20}deg)`;
       imgElem.style.filter=`brightness(${1+Math.random()*0.5})`;
@@ -218,37 +244,4 @@ document.getElementById('muteButton').addEventListener('click',()=>{ bgMusic.mut
 
 // ===== ULEPSZENIA =====
 document.getElementById('shortenCooldown').addEventListener('click',()=>{
-  if(coins>=50 && cooldown>500){ coins-=50; cooldown-=500; updateUI(); alert(`Cooldown skrócony! Teraz ${(cooldown/1000).toFixed(1)}s`);}
-  else if(cooldown<=500) alert('Cooldown już minimalny!');
-  else alert('Nie masz wystarczająco monet!');
-});
-
-document.getElementById('removeCooldown').addEventListener('click',()=>{
-  if(coins>=2000){ coins-=2000; cooldown=0; updateUI(); alert('Cooldown został całkowicie usunięty!'); }
-  else alert('Nie masz wystarczająco monet!');
-});
-
-document.getElementById('increaseChances').addEventListener('click',()=>{
-  if(coins>=100){ coins-=100; images.forEach(img=>{ img.chance=Math.round(img.chance*1.05*1000)/1000 }); updateUI(); alert('Szanse nieco ulepszone!');}
-  else alert('Nie masz wystarczająco monet!');
-});
-
-document.getElementById('buyItem').addEventListener('click',()=>{
-  if(coins>=100){
-      if(!inventory.includes('Tajemniczy Przedmiot')){
-          coins-=100; 
-          inventory.push('Tajemniczy Przedmiot'); 
-          updateUI(); 
-          alert('Tajemniczy Przedmiot dodany do ekwipunku!');
-      } else {
-          alert('Masz już Tajemniczy Przedmiot!');
-      }
-  } else alert('Nie masz wystarczająco monet!');
-});
-
-// ===== ODŚWIEŻANIE COOLDOWN =====
-setInterval(showCooldown,100);
-updateUI();
-</script>
-</body>
-</html>
+  if(coins>=50 && cooldown>500){ coins-=50; cool
