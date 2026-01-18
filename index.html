@@ -3,111 +3,94 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Paweł RNG - Gra</title>
+<title>Paweł RNG - Mega Slot Edition</title>
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    background: #1e1e1e;
-    color: #fff;
-    margin: 0;
-    padding: 0;
-  }
+body {
+  font-family: Arial, sans-serif;
+  background: #121212;
+  color: #fff;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
 
-  h1 {
-    margin-top: 30px;
-    font-size: 2em;
-  }
+h1 { margin-top: 20px; font-size: 2em; }
 
-  #rollButton, #muteButton {
-    padding: 15px 30px;
-    font-size: 1.2em;
-    margin: 10px;
-    cursor: pointer;
-    border: none;
-    border-radius: 10px;
-    transition: transform 0.2s;
-  }
+button {
+  padding: 15px 30px;
+  font-size: 1.2em;
+  margin: 10px;
+  cursor: pointer;
+  border: none;
+  border-radius: 10px;
+  transition: transform 0.2s;
+}
 
-  #rollButton {
-    background-color: #4CAF50;
-    color: white;
-  }
+#rollButton { background-color: #4CAF50; color: white; }
+#rollButton:active { transform: scale(0.9); }
+#muteButton { background-color: #f44336; color: white; }
+.upgradeButton { background-color: #2196F3; color: white; }
 
-  #rollButton:active {
-    transform: scale(0.9);
-  }
+#resultImage {
+  width: 300px;
+  height: 300px;
+  margin: 20px auto;
+  object-fit: cover;
+  border-radius: 15px;
+  display: block;
+  transition: all 0.1s;
+}
 
-  #muteButton {
-    background-color: #f44336;
-    color: white;
-  }
+#resultText { font-size: 1.5em; margin-top: 10px; }
+#chanceText, #rarityText { font-size: 1.2em; margin-top: 5px; }
 
-  #resultImage {
-    width: 300px;
-    height: 300px;
-    margin: 20px;
-    object-fit: cover;
-    border-radius: 15px;
-  }
+#currency { margin-top: 20px; font-size: 1.3em; }
+#upgrades { margin-top: 20px; font-size: 1em; display: flex; flex-wrap: wrap; justify-content: center; }
+#upgrades button { margin: 5px; }
 
-  #resultText {
-    font-size: 1.5em;
-    margin-top: 10px;
-  }
-
-  #chanceText, #rarityText {
-    margin-top: 5px;
-    font-size: 1.2em;
-  }
-
-  #currency {
-    margin-top: 20px;
-    font-size: 1.3em;
-  }
-
-  #upgrades {
-    margin-top: 20px;
-    font-size: 1em;
-  }
-
-  #upgrades button {
-    margin: 5px;
-    padding: 10px;
-    font-size: 0.9em;
-    border-radius: 5px;
-    cursor: pointer;
-  }
+#inventory, #history, #cooldownDisplay { margin-top: 15px; font-size: 1.1em; }
+#history {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #555;
+  padding: 10px;
+  border-radius: 10px;
+  width: 90%;
+  margin: 10px auto;
+  background-color: #222;
+}
 </style>
 </head>
 <body>
 
-<h1>Paweł RNG</h1>
+<h1>Paweł RNG - Mega Slot</h1>
 
 <button id="rollButton">Roll</button>
-<br>
+<div id="cooldownDisplay">Cooldown: 0s</div>
 <img id="resultImage" src="photo.png" alt="Result">
 <div id="resultText">Kliknij Roll</div>
 <div id="chanceText"></div>
 <div id="rarityText"></div>
 
 <button id="muteButton">Mute/Unmute</button>
-
 <div id="currency">Monety: <span id="coins">0</span></div>
 
 <div id="upgrades">
-  <h2>Sklep i ulepszenia</h2>
-  <button id="shortenCooldown">Skróć cooldown (50 monet)</button>
-  <button id="buyItem">Kup przedmiot (100 monet)</button>
-  <div id="inventory">Ekwipunek: brak</div>
+  <button class="upgradeButton" id="shortenCooldown">Skróć cooldown (50 monet)</button>
+  <button class="upgradeButton" id="removeCooldown">Usuń cooldown (2000 monet)</button>
+  <button class="upgradeButton" id="increaseChances">Ulepszenie szans (100 monet)</button>
+  <button class="upgradeButton" id="buyItem">Kup przedmiot (100 monet)</button>
 </div>
+
+<div id="inventory">Ekwipunek: brak</div>
+<div id="history">Historia losowań:</div>
 
 <audio id="backgroundMusic" loop>
   <source src="music.mp3" type="audio/mpeg">
 </audio>
 
 <script>
-// ---- DANE OBRAZKÓW ----
+// ===== DANE =====
 const images = [
   {src: 'photo.png', text: 'gejmingowy paweł', chance: 1/2, rarity: 'Common', reward: 1},
   {src: 'photo2.png', text: 'paweł prezydent', chance: 1/4, rarity: 'Uncommon', reward: 5},
@@ -119,116 +102,137 @@ const images = [
   {src: 'photo8.png', text: 'paweł komunista', chance: 1/256, rarity: 'Ultra Legendary', reward: 320}
 ];
 
-// ---- MUZYKA ----
-const musicFiles = ['music.mp3', 'music2.mp3', 'music3.mp3', 'music4.mp3', 'music5.mp3'];
+const musicFiles = ['music.mp3','music2.mp3','music3.mp3','music4.mp3','music5.mp3'];
 const bgMusic = document.getElementById('backgroundMusic');
 let musicStarted = false;
 
-// ---- SYSTEM WALUT I EKWIPUNKU ----
-let coins = 0;
-let inventory = [];
-let cooldown = 2000; // 2 sekundy
+// ===== ZMIENNE =====
+let coins = parseInt(localStorage.getItem('coins'))||0;
+let inventory = JSON.parse(localStorage.getItem('inventory'))||[];
+let historyData = JSON.parse(localStorage.getItem('historyData'))||{};
+let cooldown = parseInt(localStorage.getItem('cooldown'))||2000;
 let lastRoll = 0;
 
-// ---- FUNKCJE ----
-function rollRNG() {
-  const now = Date.now();
-  if (now - lastRoll < cooldown) {
-    alert(`Odczekaj jeszcze ${(cooldown - (now - lastRoll))/1000} sekund!`);
-    return;
-  }
-  lastRoll = now;
-
-  // Tworzymy pulę do losowania
-  const pool = [];
-  images.forEach(img => {
-    const entries = Math.floor(img.chance * 256);
-    for (let i = 0; i < entries; i++) pool.push(img);
-  });
-
-  const selected = pool[Math.floor(Math.random() * pool.length)];
-
-  // Wyświetl obrazek i dane
-  document.getElementById('resultImage').src = selected.src;
-  document.getElementById('resultText').textContent = selected.text;
-  document.getElementById('chanceText').textContent = `Szansa: 1/${1/selected.chance}`;
-  document.getElementById('rarityText').textContent = `Rzadkość: ${selected.rarity}`;
-
-  // Dodajemy nagrodę
-  coins += selected.reward;
-  document.getElementById('coins').textContent = coins;
+// ===== FUNKCJE =====
+function updateUI(){
+  document.getElementById('coins').textContent=coins;
+  document.getElementById('inventory').textContent=inventory.length?`Ekwipunek: ${inventory.join(', ')}`:'Ekwipunek: brak';
+  let historyHTML='';
+  for(const[key,val] of Object.entries(historyData)){ historyHTML+=`${key} (x${val})<br>`;}
+  document.getElementById('history').innerHTML=historyHTML||'Historia losowań: brak';
+  localStorage.setItem('coins',coins);
+  localStorage.setItem('inventory',JSON.stringify(inventory));
+  localStorage.setItem('historyData',JSON.stringify(historyData));
+  localStorage.setItem('cooldown',cooldown);
 }
 
-// ---- PRZYCISK ROLL ----
-let rollCooldown = false;
+function showCooldown(){
+  const now=Date.now();
+  const diff=lastRoll?Math.max(0,cooldown-(now-lastRoll)):0;
+  document.getElementById('cooldownDisplay').textContent=`Cooldown: ${(diff/1000).toFixed(1)}s`;
+}
 
-// Przycisk Roll
-document.getElementById('rollButton').addEventListener('click', () => {
-  if (rollCooldown) return;
+// ===== SLOT MEGA =====
+function rollRNG(){
+  const now=Date.now();
+  if(cooldown && now-lastRoll<cooldown){ alert(`Odczekaj jeszcze ${(cooldown-(now-lastRoll))/1000} sekund!`); return;}
+  lastRoll=now;
 
-  rollCooldown = true;
+  const entries=[];
+  images.forEach(img=>{
+    let count=Math.floor(img.chance*256);
+    if(inventory.length>0) count=Math.floor(count*1.05*count/Math.max(count,1)); 
+    for(let i=0;i<count;i++) entries.push(img);
+  });
 
-  const btn = document.getElementById('rollButton');
-  btn.style.transform = 'scale(0.8)';
-  setTimeout(() => btn.style.transform = 'scale(1)', 250);
+  const imgElem=document.getElementById('resultImage');
+  const textElem=document.getElementById('resultText');
+  const chanceElem=document.getElementById('chanceText');
+  const rarityElem=document.getElementById('rarityText');
 
-  rollRNG();
+  let elapsed=0;
+  const animSpeed=50; // ms
+  const totalDuration=1000; // 1s
+  const interval=setInterval(()=>{
+    const temp=images[Math.floor(Math.random()*images.length)];
+    imgElem.src=temp.src;
+    textElem.textContent=temp.text;
+    chanceElem.textContent=`Szansa: 1/${1/temp.chance}`;
+    rarityElem.textContent=`Rzadkość: ${temp.rarity}`;
 
-  let timeLeft = 2;
-  btn.textContent = timeLeft;
-
-  const countdown = setInterval(() => {
-    timeLeft--;
-    if (timeLeft > 0) {
-      btn.textContent = timeLeft;
-    } else {
-      clearInterval(countdown);
-      btn.textContent = "Roll";
-      rollCooldown = false;
+    // Mega efekt dla rzadkich
+    if(temp.rarity!=='Common' && temp.rarity!=='Uncommon'){
+      imgElem.style.transform=`scale(${1+Math.random()*0.2}) rotate(${(Math.random()-0.5)*20}deg)`;
+      imgElem.style.filter=`brightness(${1+Math.random()*0.5})`;
+    }else{
+      imgElem.style.transform='scale(1) rotate(0deg)';
+      imgElem.style.filter='brightness(1)';
     }
-  }, 1000);
+
+    elapsed+=animSpeed;
+    if(elapsed>=totalDuration){
+      clearInterval(interval);
+      // Właściwy wybór
+      const selected=entries[Math.floor(Math.random()*entries.length)];
+      imgElem.src=selected.src;
+      textElem.textContent=selected.text;
+      chanceElem.textContent=`Szansa: 1/${1/selected.chance}`;
+      rarityElem.textContent=`Rzadkość: ${selected.rarity}`;
+      let reward=selected.reward;
+      if(inventory.length>0) reward=Math.floor(reward*(1+0.05*inventory.length));
+      coins+=reward;
+      if(historyData[selected.text]) historyData[selected.text]++;
+      else historyData[selected.text]=1;
+      imgElem.style.transform='scale(1) rotate(0deg)';
+      imgElem.style.filter='brightness(1)';
+      updateUI();
+    }
+  },animSpeed);
+}
+
+// ===== PRZYCISKI =====
+document.getElementById('rollButton').addEventListener('click',()=>{
+  if(!musicStarted){ playRandomMusic(); musicStarted=true;}
+  const btn=document.getElementById('rollButton');
+  btn.style.transform='scale(0.8)';
+  setTimeout(()=>btn.style.transform='scale(1)',250);
+  rollRNG();
 });
 
+document.getElementById('muteButton').addEventListener('click',()=>{ bgMusic.muted=!bgMusic.muted; });
 
-
-// ---- PRZYCISK MUTE ----
-document.getElementById('muteButton').addEventListener('click', () => {
-  bgMusic.muted = !bgMusic.muted;
-});
-
-// ---- LOSOWA MUZYKA ----
-function playRandomMusic() {
-  const randomMusic = musicFiles[Math.floor(Math.random() * musicFiles.length)];
-  bgMusic.src = randomMusic;
+function playRandomMusic(){
+  const randomMusic=musicFiles[Math.floor(Math.random()*musicFiles.length)];
+  bgMusic.src=randomMusic;
   bgMusic.play();
 }
 
-// ---- SKLEP / ULEPSZENIA ----
-document.getElementById('shortenCooldown').addEventListener('click', () => {
-  if (coins >= 50 && cooldown > 500) {
-    coins -= 50;
-    cooldown -= 500; // skraca cooldown o 0.5s
-    document.getElementById('coins').textContent = coins;
-    alert(`Cooldown skrócony! Teraz wynosi ${(cooldown/1000).toFixed(1)} sekund`);
-  } else if (cooldown <= 500) {
-    alert('Cooldown już minimalny!');
-  } else {
-    alert('Nie masz wystarczająco monet!');
-  }
+// ---- ULEPSZENIA ----
+document.getElementById('shortenCooldown').addEventListener('click',()=>{
+  if(coins>=50 && cooldown>500){ coins-=50; cooldown-=500; updateUI(); alert(`Cooldown skrócony! Teraz ${(cooldown/1000).toFixed(1)}s`);}
+  else if(cooldown<=500) alert('Cooldown już minimalny!');
+  else alert('Nie masz wystarczająco monet!');
 });
 
-document.getElementById('buyItem').addEventListener('click', () => {
-  if (coins >= 100) {
-    coins -= 100;
-    inventory.push('Tajemniczy Przedmiot');
-    document.getElementById('coins').textContent = coins;
-    document.getElementById('inventory').textContent = `Ekwipunek: ${inventory.join(', ')}`;
-    alert('Przedmiot dodany do ekwipunku!');
-  } else {
-    alert('Nie masz wystarczająco monet!');
-  }
+document.getElementById('removeCooldown').addEventListener('click',()=>{
+  if(coins>=2000){ coins-=2000; cooldown=0; updateUI(); alert('Cooldown został całkowicie usunięty!'); }
+  else alert('Nie masz wystarczająco monet!');
 });
+
+document.getElementById('increaseChances').addEventListener('click',()=>{
+  if(coins>=100){ coins-=100; images.forEach(img=>{ img.chance*=1.05 }); updateUI(); alert('Szanse nieco ulepszone!');}
+  else alert('Nie masz wystarczająco monet!');
+});
+
+document.getElementById('buyItem').addEventListener('click',()=>{
+  if(coins>=100){ coins-=100; inventory.push('Tajemniczy Przedmiot'); updateUI(); alert('Przedmiot dodany do ekwipunku!');}
+  else alert('Nie masz wystarczająco monet!');
+});
+
+// ===== ODŚWIEŻANIE COOLDOWN =====
+setInterval(showCooldown,100);
+updateUI();
+
 </script>
-
 </body>
 </html>
